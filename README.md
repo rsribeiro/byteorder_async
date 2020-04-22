@@ -26,7 +26,7 @@ byteorder_async = {version="1.0.0", features=["tokio_async"] }
 Basic async usage:
 
 ```rust
-use byteorder_async::AsyncReadByteOrder;
+use byteorder_async::ReaderToByteOrder;
 
 let reader : io::AsyncRead = ...;
 // after the byte_order its the same calls.

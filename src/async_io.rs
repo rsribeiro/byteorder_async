@@ -27,11 +27,11 @@ pub struct AsyncReadByteOrder<'a, R: io::AsyncRead>  {
     reader: &'a mut R,
 }
 
-pub trait ReaderToTypeOrder<'a, R: io::AsyncRead+Unpin> {
+pub trait ReaderToByteOrder<'a, R: io::AsyncRead+Unpin> {
     fn byte_order(&'a mut self) -> AsyncReadByteOrder<'a, R>;
 }
 
-impl<'a, R: io::AsyncRead+Unpin> ReaderToTypeOrder<'a, R> for R { 
+impl<'a, R: io::AsyncRead+Unpin> ReaderToByteOrder<'a, R> for R { 
     fn byte_order(&'a mut self) -> AsyncReadByteOrder<'a, R> {
         AsyncReadByteOrder::from_reader(self)
     }
