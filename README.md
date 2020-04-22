@@ -13,13 +13,13 @@ This is a fork of [byteorder](https://github.com/BurntSushi/byteorder) with the 
 
 for `futures::io`
 ```
-byteorder_async = {version="0.2.18", features=["futures_async"] }
+byteorder_async = {version="1.0.0", features=["futures_async"] }
 ```
 
 
 for `tokio::io`
 ```
-byteorder_async = {version="0.2.18", features=["tokio_async"] }
+byteorder_async = {version="1.0.0", features=["tokio_async"] }
 ```
 
 
