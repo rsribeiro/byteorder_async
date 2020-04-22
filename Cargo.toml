@@ -12,18 +12,23 @@ keywords = ["byte", "endian", "big-endian", "little-endian", "binary"]
 license = "Unlicense OR MIT"
 exclude = ["/ci/*"]
 build = "build.rs"
+edition = "2018"
 
 [lib]
 name = "byteorder"
 bench = false
+
+[dependencies]
+tokio = {version="0.2.18", features=["io-util"], optional = true }
 
 [dev-dependencies]
 quickcheck = { version = "0.8", default-features = false }
 rand = "0.6"
 
 [features]
-default = ["std"]
+default = ["std", "tokio"]
 std = []
+async-tokio = ["tokio"]
 
 # This feature is no longer used and is DEPRECATED. This crate now
 # automatically enables i128 support for Rust compilers that support it. The
