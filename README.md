@@ -12,20 +12,20 @@ This is a fork of [byteorder](https://github.com/BurntSushi/byteorder) with the 
 
 
 for `futures::io`
-```
+```toml
 byteorder_async = {version="1.0.0", features=["futures_async"] }
 ```
 
 
 for `tokio::io`
-```
+```toml
 byteorder_async = {version="1.0.0", features=["tokio_async"] }
 ```
 
 
 Basic async usage:
 
-```
+```rust
 use byteorder_async::AsyncReadByteOrder;
 
 let reader : io::AsyncRead = ...;
