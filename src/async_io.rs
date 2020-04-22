@@ -1,9 +1,14 @@
-use tokio::io::{self, Result, AsyncReadExt, AsyncWriteExt};
+
 use std::slice;
 
 use crate::ByteOrder;
 
+#[cfg(feature = "tokio")]
+use tokio::io::{self, Result, AsyncReadExt, AsyncWriteExt};
 
+
+#[cfg(feature = "futures")]
+use futures::io::{self, Result, AsyncReadExt, AsyncWriteExt};
 
 /// Convert a slice of T (where T is plain old data) to its mutable binary
 /// representation.

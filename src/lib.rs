@@ -89,11 +89,13 @@ pub use io::{ReadBytesExt, WriteBytesExt};
 #[cfg(feature = "std")]
 mod io;
 
+#[cfg(feature = "futures")]
 #[cfg(feature = "tokio")]
-mod tokio_io;
+mod async_io;
 
 #[cfg(feature = "tokio")]
-pub use tokio_io::{AsyncReadByteOrder, AsyncWriteByteOrder};
+#[cfg(feature = "futures")]
+pub use async_io::{AsyncReadByteOrder, AsyncWriteByteOrder};
 
 #[inline]
 fn extend_sign(val: u64, nbytes: usize) -> i64 {

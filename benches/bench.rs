@@ -1,6 +1,6 @@
 #![feature(test)]
 
-extern crate byteorder;
+extern crate byteorder_async as byteorder;
 extern crate rand;
 extern crate test;
 
