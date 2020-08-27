@@ -90,7 +90,7 @@ mod io;
 mod async_io;
 
 #[cfg(any(feature = "tokio_async", feature = "futures_async"))]
-pub use async_io::{ReaderToByteOrder, WriterToByteOrder};
+pub use async_io::{AsyncReadByteOrder, AsyncWriteByteOrder};
 
 #[inline]
 fn extend_sign(val: u64, nbytes: usize) -> i64 {

@@ -13,27 +13,22 @@ This is a fork of [byteorder](https://github.com/BurntSushi/byteorder) with the 
 
 for `futures::io`
 ```toml
-byteorder_async = {version="1.2.0", features=["futures_async"] }
+byteorder_async = {version="1.3.0", features=["futures_async"] }
 ```
 
 
 for `tokio::io`
 ```toml
-byteorder_async = {version="1.2.0", features=["tokio_async"] }
+byteorder_async = {version="1.3.0", features=["tokio_async"] }
 ```
 
 
 Basic async usage:
 
 ```rust
-use byteorder_async::ReaderToByteOrder;
+use byteorder_async::AsyncReadByteOrder;
 
 let reader : io::AsyncRead = ...;
 // after the byte_order its the same calls.
-let byte = reader.byte_order().read_u8().await;
+let byte = reader.read_u8().await;
 ```
-
-
-
-Note:
-Thre reason for the `byte_order()` call is because `async fn` is not supprted in traits yet. 
