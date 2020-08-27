@@ -2,13 +2,14 @@
 use std::slice;
 
 use crate::ByteOrder;
+use std::io;
 
-#[cfg(feature = "tokio")]
-use tokio::io::{self, Result, AsyncReadExt, AsyncWriteExt};
+#[cfg(feature = "tokio_async")]
+use tokio::io::{AsyncRead, AsyncWrite, AsyncReadExt, AsyncWriteExt};
 
+#[cfg(feature = "futures_async")]
+use futures::io::{AsyncRead, AsyncWrite, AsyncReadExt, AsyncWriteExt};
 
-#[cfg(feature = "futures")]
-use futures::io::{self, Result, AsyncReadExt, AsyncWriteExt};
 
 /// Convert a slice of T (where T is plain old data) to its mutable binary
 /// representation.
@@ -22,23 +23,26 @@ unsafe fn slice_to_u8_mut<T: Copy>(slice: &mut [T]) -> &mut [u8] {
     slice::from_raw_parts_mut(slice.as_mut_ptr() as *mut u8, len)
 }
 
-/// 
-pub struct AsyncReadByteOrder<'a, R: io::AsyncRead>  {
+/// TODO: DOCS
+pub struct AsyncReadByteOrder<'a, R: AsyncRead+Unpin>  {
     reader: &'a mut R,
 }
 
-pub trait ReaderToByteOrder<'a, R: io::AsyncRead+Unpin> {
+/// TODO: DOCS
+pub trait ReaderToByteOrder<'a, R: AsyncRead+Unpin> {
+    /// TODO: DOCS
     fn byte_order(&'a mut self) -> AsyncReadByteOrder<'a, R>;
 }
-
-impl<'a, R: io::AsyncRead+Unpin> ReaderToByteOrder<'a, R> for R { 
+/// TODO: DOCS
+impl<'a, R: AsyncRead+Unpin> ReaderToByteOrder<'a, R> for R { 
     fn byte_order(&'a mut self) -> AsyncReadByteOrder<'a, R> {
         AsyncReadByteOrder::from_reader(self)
     }
 }
 
-impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
-    /// 
+/// TODO: DOCS
+impl<'a, R: AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
+    /// TODO: DOCS
     pub fn from_reader(r: &'a mut R) -> Self{
         AsyncReadByteOrder {
             reader: r
@@ -46,8 +50,9 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     }
 
     /// 
-    pub async fn read_exact(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.reader.read_exact(buf).await
+    pub async fn read_exact(&mut self, buf: &mut [u8]) -> io::Result<()> {
+        self.reader.read_exact(buf).await?;
+        Ok(())
     }
 
     /// Reads an unsigned 8 bit integer from the underlying reader.
@@ -74,7 +79,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!(5, rdr.read_u8().unwrap());
     /// ```
     #[inline]
-    pub async fn read_u8(&mut self) -> Result<u8> {
+    pub async fn read_u8(&mut self) -> io::Result<u8> {
         let mut buf = [0; 1];
         self.read_exact(&mut buf).await?;
         Ok(buf[0])
@@ -104,7 +109,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!(-5, rdr.read_i8().unwrap());
     /// ```
     #[inline]
-    pub async fn read_i8(&mut self) -> Result<i8> {
+    pub async fn read_i8(&mut self) -> io::Result<i8> {
         let mut buf = [0; 1];
         self.read_exact(&mut buf).await?;
         Ok(buf[0] as i8)
@@ -131,7 +136,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!(768, rdr.read_u16::<BigEndian>().unwrap());
     /// ```
     #[inline]
-    pub async fn read_u16<T: ByteOrder>(&mut self) -> Result<u16> {
+    pub async fn read_u16<T: ByteOrder>(&mut self) -> io::Result<u16> {
         let mut buf = [0; 2];
         self.read_exact(&mut buf).await?;
         Ok(T::read_u16(&buf))
@@ -158,7 +163,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!(-132, rdr.read_i16::<BigEndian>().unwrap());
     /// ```
     #[inline]
-    pub async fn read_i16<T: ByteOrder>(&mut self) -> Result<i16> {
+    pub async fn read_i16<T: ByteOrder>(&mut self) -> io::Result<i16> {
         let mut buf = [0; 2];
         self.read_exact(&mut buf).await?;
         Ok(T::read_i16(&buf))
@@ -184,7 +189,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!(267, rdr.read_u24::<BigEndian>().unwrap());
     /// ```
     #[inline]
-    pub async fn read_u24<T: ByteOrder>(&mut self) -> Result<u32> {
+    pub async fn read_u24<T: ByteOrder>(&mut self) -> io::Result<u32> {
         let mut buf = [0; 3];
         self.read_exact(&mut buf).await?;
         Ok(T::read_u24(&buf))
@@ -210,7 +215,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!(-34253, rdr.read_i24::<BigEndian>().unwrap());
     /// ```
     #[inline]
-    pub async fn read_i24<T: ByteOrder>(&mut self) -> Result<i32> {
+    pub async fn read_i24<T: ByteOrder>(&mut self) -> io::Result<i32> {
         let mut buf = [0; 3];
         self.read_exact(&mut buf).await?;
         Ok(T::read_i24(&buf))
@@ -236,7 +241,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!(267, rdr.read_u32::<BigEndian>().unwrap());
     /// ```
     #[inline]
-    pub async fn read_u32<T: ByteOrder>(&mut self) -> Result<u32> {
+    pub async fn read_u32<T: ByteOrder>(&mut self) -> io::Result<u32> {
         let mut buf = [0; 4];
         self.read_exact(&mut buf).await?;
         Ok(T::read_u32(&buf))
@@ -262,7 +267,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!(-34253, rdr.read_i32::<BigEndian>().unwrap());
     /// ```
     #[inline]
-    pub async fn read_i32<T: ByteOrder>(&mut self) -> Result<i32> {
+    pub async fn read_i32<T: ByteOrder>(&mut self) -> io::Result<i32> {
         let mut buf = [0; 4];
         self.read_exact(&mut buf).await?;
         Ok(T::read_i32(&buf))
@@ -288,7 +293,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!(200598257150769, rdr.read_u48::<BigEndian>().unwrap());
     /// ```
     #[inline]
-    pub async fn read_u48<T: ByteOrder>(&mut self) -> Result<u64> {
+    pub async fn read_u48<T: ByteOrder>(&mut self) -> io::Result<u64> {
         let mut buf = [0; 6];
         self.read_exact(&mut buf).await?;
         Ok(T::read_u48(&buf))
@@ -314,7 +319,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!(-108363435763825, rdr.read_i48::<BigEndian>().unwrap());
     /// ```
     #[inline]
-    pub async fn read_i48<T: ByteOrder>(&mut self) -> Result<i64> {
+    pub async fn read_i48<T: ByteOrder>(&mut self) -> io::Result<i64> {
         let mut buf = [0; 6];
         self.read_exact(&mut buf).await?;
         Ok(T::read_i48(&buf))
@@ -340,7 +345,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!(918733457491587, rdr.read_u64::<BigEndian>().unwrap());
     /// ```
     #[inline]
-    pub async fn read_u64<T: ByteOrder>(&mut self) -> Result<u64> {
+    pub async fn read_u64<T: ByteOrder>(&mut self) -> io::Result<u64> {
         let mut buf = [0; 8];
         self.read_exact(&mut buf).await?;
         Ok(T::read_u64(&buf))
@@ -366,7 +371,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!(i64::min_value(), rdr.read_i64::<BigEndian>().unwrap());
     /// ```
     #[inline]
-    pub async fn read_i64<T: ByteOrder>(&mut self) -> Result<i64> {
+    pub async fn read_i64<T: ByteOrder>(&mut self) -> io::Result<i64> {
         let mut buf = [0; 8];
         self.read_exact(&mut buf).await?;
         Ok(T::read_i64(&buf))
@@ -396,7 +401,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// ```
     #[cfg(byteorder_i128)]
     #[inline]
-    pub async fn read_u128<T: ByteOrder>(&mut self) -> Result<u128> {
+    pub async fn read_u128<T: ByteOrder>(&mut self) -> io::Result<u128> {
         let mut buf = [0; 16];
         self.read_exact(&mut buf).await?;
         Ok(T::read_u128(&buf))
@@ -423,7 +428,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// ```
     #[cfg(byteorder_i128)]
     #[inline]
-    pub async fn read_i128<T: ByteOrder>(&mut self) -> Result<i128> {
+    pub async fn read_i128<T: ByteOrder>(&mut self) -> io::Result<i128> {
         let mut buf = [0; 16];
         self.read_exact(&mut buf).await?;
         Ok(T::read_i128(&buf))
@@ -448,7 +453,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// let mut rdr = Cursor::new(vec![0x80, 0x74, 0xfa]);
     /// assert_eq!(8418554, rdr.read_uint::<BigEndian>(3).unwrap());
     #[inline]
-    pub async fn read_uint<T: ByteOrder>(&mut self, nbytes: usize) -> Result<u64> {
+    pub async fn read_uint<T: ByteOrder>(&mut self, nbytes: usize) -> io::Result<u64> {
         let mut buf = [0; 8];
         self.read_exact(&mut buf[..nbytes]).await?;
         Ok(T::read_uint(&buf[..nbytes], nbytes))
@@ -473,7 +478,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// let mut rdr = Cursor::new(vec![0xc1, 0xff, 0x7c]);
     /// assert_eq!(-4063364, rdr.read_int::<BigEndian>(3).unwrap());
     #[inline]
-    pub async fn read_int<T: ByteOrder>(&mut self, nbytes: usize) -> Result<i64> {
+    pub async fn read_int<T: ByteOrder>(&mut self, nbytes: usize) -> io::Result<i64> {
         let mut buf = [0; 8];
         self.read_exact(&mut buf[..nbytes]).await?;
         Ok(T::read_int(&buf[..nbytes], nbytes))
@@ -482,7 +487,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// Reads an unsigned n-bytes integer from the underlying reader.
     #[cfg(byteorder_i128)]
     #[inline]
-    pub async fn read_uint128<T: ByteOrder>(&mut self, nbytes: usize) -> Result<u128> {
+    pub async fn read_uint128<T: ByteOrder>(&mut self, nbytes: usize) -> io::Result<u128> {
         let mut buf = [0; 16];
         self.read_exact(&mut buf[..nbytes]).await?;
         Ok(T::read_uint128(&buf[..nbytes], nbytes))
@@ -491,7 +496,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// Reads a signed n-bytes integer from the underlying reader.
     #[cfg(byteorder_i128)]
     #[inline]
-    pub async fn read_int128<T: ByteOrder>(&mut self, nbytes: usize) -> Result<i128> {
+    pub async fn read_int128<T: ByteOrder>(&mut self, nbytes: usize) -> io::Result<i128> {
         let mut buf = [0; 16];
         self.read_exact(&mut buf[..nbytes]).await?;
         Ok(T::read_int128(&buf[..nbytes], nbytes))
@@ -522,7 +527,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!(f32::consts::PI, rdr.read_f32::<BigEndian>().unwrap());
     /// ```
     #[inline]
-    pub async fn read_f32<T: ByteOrder>(&mut self) -> Result<f32> {
+    pub async fn read_f32<T: ByteOrder>(&mut self) -> io::Result<f32> {
         let mut buf = [0; 4];
         self.read_exact(&mut buf).await?;
         Ok(T::read_f32(&buf))
@@ -553,7 +558,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!(f64::consts::PI, rdr.read_f64::<BigEndian>().unwrap());
     /// ```
     #[inline]
-    pub async fn read_f64<T: ByteOrder>(&mut self) -> Result<f64> {
+    pub async fn read_f64<T: ByteOrder>(&mut self) -> io::Result<f64> {
         let mut buf = [0; 8];
         self.read_exact(&mut buf).await?;
         Ok(T::read_f64(&buf))
@@ -585,7 +590,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!([517, 768], dst);
     /// ```
     #[inline]
-    pub async fn read_u16_into<T: ByteOrder>(&mut self, dst: &mut [u16]) -> Result<()> {
+    pub async fn read_u16_into<T: ByteOrder>(&mut self, dst: &mut [u16]) -> io::Result<()> {
         {
             let buf = unsafe { slice_to_u8_mut(dst) };
             self.read_exact(buf).await?;
@@ -620,7 +625,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!([517, 768], dst);
     /// ```
     #[inline]
-    pub async fn read_u32_into<T: ByteOrder>(&mut self, dst: &mut [u32]) -> Result<()> {
+    pub async fn read_u32_into<T: ByteOrder>(&mut self, dst: &mut [u32]) -> io::Result<()> {
         {
             let buf = unsafe { slice_to_u8_mut(dst) };
             self.read_exact(buf).await?;
@@ -658,7 +663,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!([517, 768], dst);
     /// ```
     #[inline]
-    pub async fn read_u64_into<T: ByteOrder>(&mut self, dst: &mut [u64]) -> Result<()> {
+    pub async fn read_u64_into<T: ByteOrder>(&mut self, dst: &mut [u64]) -> io::Result<()> {
         {
             let buf = unsafe { slice_to_u8_mut(dst) };
             self.read_exact(buf).await?;
@@ -700,7 +705,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     pub async fn read_u128_into<T: ByteOrder>(
         &mut self,
         dst: &mut [u128],
-    ) -> Result<()> {
+    ) -> io::Result<()> {
         {
             let buf = unsafe { slice_to_u8_mut(dst) };
             self.read_exact(buf).await?;
@@ -740,7 +745,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!([2, -5, 3], dst);
     /// ```
     #[inline]
-    pub async fn read_i8_into(&mut self, dst: &mut [i8]) -> Result<()> {
+    pub async fn read_i8_into(&mut self, dst: &mut [i8]) -> io::Result<()> {
         let buf = unsafe { slice_to_u8_mut(dst) };
         self.read_exact(buf).await?;
         Ok(())
@@ -772,7 +777,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!([517, 768], dst);
     /// ```
     #[inline]
-    pub async fn read_i16_into<T: ByteOrder>(&mut self, dst: &mut [i16]) -> Result<()> {
+    pub async fn read_i16_into<T: ByteOrder>(&mut self, dst: &mut [i16]) -> io::Result<()> {
         {
             let buf = unsafe { slice_to_u8_mut(dst) };
             self.read_exact(buf).await?;
@@ -807,7 +812,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!([517, 768], dst);
     /// ```
     #[inline]
-    pub async fn read_i32_into<T: ByteOrder>(&mut self, dst: &mut [i32]) -> Result<()> {
+    pub async fn read_i32_into<T: ByteOrder>(&mut self, dst: &mut [i32]) -> io::Result<()> {
         {
             let buf = unsafe { slice_to_u8_mut(dst) };
             self.read_exact(buf).await?;
@@ -845,7 +850,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!([517, 768], dst);
     /// ```
     #[inline]
-    pub async fn read_i64_into<T: ByteOrder>(&mut self, dst: &mut [i64]) -> Result<()> {
+    pub async fn read_i64_into<T: ByteOrder>(&mut self, dst: &mut [i64]) -> io::Result<()> {
         {
             let buf = unsafe { slice_to_u8_mut(dst) };
             self.read_exact(buf).await?;
@@ -887,7 +892,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
    pub async fn read_i128_into<T: ByteOrder>(
         &mut self,
         dst: &mut [i128],
-    ) -> Result<()> {
+    ) -> io::Result<()> {
         {
             let buf = unsafe { slice_to_u8_mut(dst) };
             self.read_exact(buf).await?;
@@ -928,7 +933,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!([f32::consts::PI, 1.0], dst);
     /// ```
     #[inline]
-   pub async fn read_f32_into<T: ByteOrder>(&mut self, dst: &mut [f32]) -> Result<()> {
+   pub async fn read_f32_into<T: ByteOrder>(&mut self, dst: &mut [f32]) -> io::Result<()> {
         {
             let buf = unsafe { slice_to_u8_mut(dst) };
             self.read_exact(buf).await?;
@@ -977,7 +982,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
    pub async fn read_f32_into_unchecked<T: ByteOrder>(
         &mut self,
         dst: &mut [f32],
-    ) -> Result<()> {
+    ) -> io::Result<()> {
         self.read_f32_into::<T>(dst).await
     }
 
@@ -1013,7 +1018,7 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
     /// assert_eq!([f64::consts::PI, 1.0], dst);
     /// ```
     #[inline]
-   pub async fn read_f64_into<T: ByteOrder>(&mut self, dst: &mut [f64]) -> Result<()> {
+   pub async fn read_f64_into<T: ByteOrder>(&mut self, dst: &mut [f64]) -> io::Result<()> {
         {
             let buf = unsafe { slice_to_u8_mut(dst) };
             self.read_exact(buf).await?;
@@ -1024,30 +1029,32 @@ impl<'a, R: io::AsyncRead+Unpin>  AsyncReadByteOrder<'a, R>  {
 
 }
 
-/// 
-pub struct AsyncWriteByteOrder<'a, W: io::AsyncWrite+Unpin>  {
+/// TODO: DOCS
+pub struct AsyncWriteByteOrder<'a, W: AsyncWrite+Unpin>  {
     writer: &'a mut W,
 }
 
-pub trait WriterToByteOrder<'a, W: io::AsyncWrite+Unpin> {
+/// TODO: DOCS
+pub trait WriterToByteOrder<'a, W: AsyncWrite+Unpin> {
+    /// TODO: DOCS
     fn byte_order(&'a mut self) -> AsyncWriteByteOrder<W>;
 }
-
-impl<'a, R: io::AsyncWrite+Unpin> WriterToByteOrder<'a, R> for R { 
+/// TODO: DOCS
+impl<'a, R: AsyncWrite+Unpin> WriterToByteOrder<'a, R> for R {
     fn byte_order(&'a mut self) -> AsyncWriteByteOrder<R> {
         AsyncWriteByteOrder::from_writer(self)
     }
 }
 
-impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
-    /// 
+impl<'a, R: AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
+    /// TODO: DOCS
     pub fn from_writer(r: &'a mut R) -> Self{
         AsyncWriteByteOrder {
             writer: r
         }
     }
 
-    /// 
+    /// TODO: DOCS
     pub async fn write_all(&mut self, buf: &[u8]) -> io::Result<()>{
         self.writer.write_all(buf).await?;
         Ok(())
@@ -1076,7 +1083,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// assert_eq!(wtr, b"\x02\x05");
     /// ```
     #[inline]
-    pub async fn write_u8(&mut self, n: u8) -> Result<()> {
+    pub async fn write_u8(&mut self, n: u8) -> io::Result<()> {
         self.write_all(&[n]).await
     }
 
@@ -1104,7 +1111,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// assert_eq!(wtr, b"\x02\xfb");
     /// ```
     #[inline]
-    pub async fn write_i8(&mut self, n: i8) -> Result<()> {
+    pub async fn write_i8(&mut self, n: i8) -> io::Result<()> {
         self.write_all(&[n as u8]).await
     }
 
@@ -1129,7 +1136,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// assert_eq!(wtr, b"\x02\x05\x03\x00");
     /// ```
     #[inline]
-    pub async fn write_u16<T: ByteOrder>(&mut self, n: u16) -> Result<()> {
+    pub async fn write_u16<T: ByteOrder>(&mut self, n: u16) -> io::Result<()> {
         let mut buf = [0; 2];
         T::write_u16(&mut buf, n);
         self.write_all(&buf).await
@@ -1156,7 +1163,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// assert_eq!(wtr, b"\x00\xc1\xff\x7c");
     /// ```
     #[inline]
-    pub async fn write_i16<T: ByteOrder>(&mut self, n: i16) -> Result<()> {
+    pub async fn write_i16<T: ByteOrder>(&mut self, n: i16) -> io::Result<()> {
         let mut buf = [0; 2];
         T::write_i16(&mut buf, n);
         self.write_all(&buf).await
@@ -1183,7 +1190,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// assert_eq!(wtr, b"\x00\x01\x0b\x01\xd5\x2f");
     /// ```
     #[inline]
-    pub async fn write_u24<T: ByteOrder>(&mut self, n: u32) -> Result<()> {
+    pub async fn write_u24<T: ByteOrder>(&mut self, n: u32) -> io::Result<()> {
         let mut buf = [0; 3];
         T::write_u24(&mut buf, n);
         self.write_all(&buf).await
@@ -1210,7 +1217,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// assert_eq!(wtr, b"\xff\x7a\x33\x01\xd5\x2f");
     /// ```
     #[inline]
-    pub async fn write_i24<T: ByteOrder>(&mut self, n: i32) -> Result<()> {
+    pub async fn write_i24<T: ByteOrder>(&mut self, n: i32) -> io::Result<()> {
         let mut buf = [0; 3];
         T::write_i24(&mut buf, n);
         self.write_all(&buf).await
@@ -1237,7 +1244,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// assert_eq!(wtr, b"\x00\x00\x01\x0b\x47\xd9\x3d\x66");
     /// ```
     #[inline]
-    pub async fn write_u32<T: ByteOrder>(&mut self, n: u32) -> Result<()> {
+    pub async fn write_u32<T: ByteOrder>(&mut self, n: u32) -> io::Result<()> {
         let mut buf = [0; 4];
         T::write_u32(&mut buf, n);
         self.write_all(&buf).await
@@ -1264,7 +1271,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// assert_eq!(wtr, b"\xff\xff\x7a\x33\x47\xd9\x3d\x66");
     /// ```
     #[inline]
-    pub async fn write_i32<T: ByteOrder>(&mut self, n: i32) -> Result<()> {
+    pub async fn write_i32<T: ByteOrder>(&mut self, n: i32) -> io::Result<()> {
         let mut buf = [0; 4];
         T::write_i32(&mut buf, n);
         self.write_all(&buf).await
@@ -1291,7 +1298,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// assert_eq!(wtr, b"\x2f\x9f\x17\x40\x3a\xac\x00\x00\x00\x00\x02\x1d");
     /// ```
     #[inline]
-    pub async fn write_u48<T: ByteOrder>(&mut self, n: u64) -> Result<()> {
+    pub async fn write_u48<T: ByteOrder>(&mut self, n: u64) -> io::Result<()> {
         let mut buf = [0; 6];
         T::write_u48(&mut buf, n);
         self.write_all(&buf).await
@@ -1318,7 +1325,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// assert_eq!(wtr, b"\x9d\x71\xab\xe7\x97\x8f\x00\x00\x00\x00\x00\x4d");
     /// ```
     #[inline]
-    pub async fn write_i48<T: ByteOrder>(&mut self, n: i64) -> Result<()> {
+    pub async fn write_i48<T: ByteOrder>(&mut self, n: i64) -> io::Result<()> {
         let mut buf = [0; 6];
         T::write_i48(&mut buf, n);
         self.write_all(&buf).await
@@ -1345,7 +1352,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// assert_eq!(wtr, b"\x00\x03\x43\x95\x4d\x60\x86\x83\x00\x00\x00\x00\x00\x00\x00\x8f");
     /// ```
     #[inline]
-    pub async fn write_u64<T: ByteOrder>(&mut self, n: u64) -> Result<()> {
+    pub async fn write_u64<T: ByteOrder>(&mut self, n: u64) -> io::Result<()> {
         let mut buf = [0; 8];
         T::write_u64(&mut buf, n);
         self.write_all(&buf).await
@@ -1372,7 +1379,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// assert_eq!(wtr, b"\x80\x00\x00\x00\x00\x00\x00\x00\x7f\xff\xff\xff\xff\xff\xff\xff");
     /// ```
     #[inline]
-    pub async fn write_i64<T: ByteOrder>(&mut self, n: i64) -> Result<()> {
+    pub async fn write_i64<T: ByteOrder>(&mut self, n: i64) -> io::Result<()> {
         let mut buf = [0; 8];
         T::write_i64(&mut buf, n);
         self.write_all(&buf).await
@@ -1381,7 +1388,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// Writes an unsigned 128 bit integer to the underlying writer.
     #[cfg(byteorder_i128)]
     #[inline]
-    pub async fn write_u128<T: ByteOrder>(&mut self, n: u128) -> Result<()> {
+    pub async fn write_u128<T: ByteOrder>(&mut self, n: u128) -> io::Result<()> {
         let mut buf = [0; 16];
         T::write_u128(&mut buf, n);
         self.write_all(&buf).await
@@ -1390,7 +1397,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// Writes a signed 128 bit integer to the underlying writer.
     #[cfg(byteorder_i128)]
     #[inline]
-    pub async fn write_i128<T: ByteOrder>(&mut self, n: i128) -> Result<()> {
+    pub async fn write_i128<T: ByteOrder>(&mut self, n: i128) -> io::Result<()> {
         let mut buf = [0; 16];
         T::write_i128(&mut buf, n);
         self.write_all(&buf).await
@@ -1426,7 +1433,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
         &mut self,
         n: u64,
         nbytes: usize,
-    ) -> Result<()> {
+    ) -> io::Result<()> {
         let mut buf = [0; 8];
         T::write_uint(&mut buf, n, nbytes);
         self.write_all(&buf[0..nbytes]).await
@@ -1462,7 +1469,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
         &mut self,
         n: i64,
         nbytes: usize,
-    ) -> Result<()> {
+    ) -> io::Result<()> {
         let mut buf = [0; 8];
         T::write_int(&mut buf, n, nbytes);
         self.write_all(&buf[0..nbytes]).await
@@ -1478,7 +1485,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
         &mut self,
         n: u128,
         nbytes: usize,
-    ) -> Result<()> {
+    ) -> io::Result<()> {
         let mut buf = [0; 16];
         T::write_uint128(&mut buf, n, nbytes);
         self.write_all(&buf[0..nbytes]).await
@@ -1494,7 +1501,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
         &mut self,
         n: i128,
         nbytes: usize,
-    ) -> Result<()> {
+    ) -> io::Result<()> {
         let mut buf = [0; 16];
         T::write_int128(&mut buf, n, nbytes);
         self.write_all(&buf[0..nbytes]).await
@@ -1523,7 +1530,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// assert_eq!(wtr, b"\x40\x49\x0f\xdb");
     /// ```
     #[inline]
-    pub async fn write_f32<T: ByteOrder>(&mut self, n: f32) -> Result<()> {
+    pub async fn write_f32<T: ByteOrder>(&mut self, n: f32) -> io::Result<()> {
         let mut buf = [0; 4];
         T::write_f32(&mut buf, n);
         self.write_all(&buf).await
@@ -1552,7 +1559,7 @@ impl<'a, R: io::AsyncWrite+Unpin>  AsyncWriteByteOrder<'a, R>  {
     /// assert_eq!(wtr, b"\x40\x09\x21\xfb\x54\x44\x2d\x18");
     /// ```
     #[inline]
-    pub async fn write_f64<T: ByteOrder>(&mut self, n: f64) -> Result<()> {
+    pub async fn write_f64<T: ByteOrder>(&mut self, n: f64) -> io::Result<()> {
         let mut buf = [0; 8];
         T::write_f64(&mut buf, n);
         self.write_all(&buf).await

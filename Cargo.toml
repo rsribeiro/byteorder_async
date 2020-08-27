@@ -1,6 +1,6 @@
 [package]
 name = "byteorder_async"
-version = "1.1.0"  #:version
+version = "1.2.0"  #:version
 authors = ["Andrew Gallant <jamslam@gmail.com>", "Sam M."]
 description = "Library for reading/writing numbers in big-endian and little-endian asynchronously."
 documentation = "https://docs.rs/byteorder"

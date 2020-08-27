@@ -75,9 +75,6 @@ cases.
 #[cfg(feature = "std")]
 extern crate core;
 
-#[cfg(feature = "tokio")]
-extern crate tokio;
-
 use core::fmt::Debug;
 use core::hash::Hash;
 use core::ptr::copy_nonoverlapping;
@@ -89,12 +86,10 @@ pub use io::{ReadBytesExt, WriteBytesExt};
 #[cfg(feature = "std")]
 mod io;
 
-#[cfg(feature = "futures")]
-#[cfg(feature = "tokio")]
+#[cfg(any(feature = "tokio_async", feature = "futures_async"))]
 mod async_io;
 
-#[cfg(feature = "tokio")]
-#[cfg(feature = "futures")]
+#[cfg(any(feature = "tokio_async", feature = "futures_async"))]
 pub use async_io::{ReaderToByteOrder, WriterToByteOrder};
 
 #[inline]
